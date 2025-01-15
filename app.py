@@ -139,6 +139,11 @@ def reordenar_numeros(numeros_en_fila):
         numeros_correctos = numeros_en_fila
     return numeros_correctos
 
+@app.route('/test_update', methods=['GET'])
+def test_update():
+    return "El servidor está actualizado correctamente.", 200
+
+
 @app.route('/procesar_pdf_files', methods=['POST'])
 def procesar_pdf_files():
     """Procesar múltiples archivos PDF enviados en la solicitud."""
