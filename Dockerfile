@@ -13,5 +13,6 @@ COPY . .
 RUN pip install -r requirements.txt
 
 # Comando para iniciar la aplicación
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--timeout", "120"]
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "3", "--timeout", "120"]
+
 
