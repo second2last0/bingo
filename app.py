@@ -63,6 +63,50 @@ def extraer_tablas(texto):
 
     return tablas
 
+
+@app.route('/test_pdf_pages', methods=['POST'])
+def test_pdf_pages():
+    """Probar si se reconocen todas las páginas de un archivo PDF."""
+    if 'file' not in request.files:
+        return jsonify({"error": "No se encontró un archivo en la solicitud"}), 400
+
+    archivo = request.files['file']
+    if archivo.filename == '' or not archivo.filename.lower().endswith('.pdf'):
+        return jsonify({"error": "El archivo no es un PDF o está vacío"}), 400
+
+    try:
+        # Guardar temporalmente el archivo
+        ruta_temporal = f"temp_{archivo.filename}"
+        archivo.save(ruta_temporal)
+
+        # Procesar el archivo
+        paginas_info = []
+        with fitz.open(ruta_temporal) as doc:
+            num_paginas = len(doc)
+            for page_num in range(num_paginas):
+                page = doc.load_page(page_num)
+                texto = page.get_text()
+                imagenes = page.get_images(full=True)
+
+                # Obtener información de la página
+                paginas_info.append({
+                    "pagina": page_num + 1,
+                    "texto": texto.strip() if texto else "No se encontró texto",
+                    "num_imagenes": len(imagenes),
+                })
+
+        # Eliminar el archivo temporal
+        os.remove(ruta_temporal)
+
+        return jsonify({
+            "total_paginas": len(paginas_info),
+            "paginas": paginas_info
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"Error procesando el archivo: {e}"}), 500
+
+
 def es_tabla_especial(codigo):
     """Determina si una tabla es especial y debe omitirse."""
     especiales = ["0077731", "0077732"]
