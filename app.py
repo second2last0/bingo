@@ -16,24 +16,27 @@ else:  # Linux o Android
     pytesseract.pytesseract.tesseract_cmd = '/data/data/org.test.myapp/files/tesseract'
 
 def leer_pdf(ruta_archivo):
-    """Extraer texto y procesar imágenes de un archivo PDF."""
+    """Extraer texto y procesar imágenes de todas las páginas de un archivo PDF."""
     texto_completo = ""
     try:
         with fitz.open(ruta_archivo) as doc:
             for page_num in range(len(doc)):
                 page = doc.load_page(page_num)
+                # Extraer texto de la página
                 text = page.get_text()
                 if text:
-                    texto_completo += text
+                    texto_completo += text + "\n"  # Asegurar que las páginas estén separadas
+                # Procesar imágenes de la página
                 for img in page.get_images(full=True):
                     xref = img[0]
                     base_image = doc.extract_image(xref)
                     image_data = base_image["image"]
                     img = Image.open(io.BytesIO(image_data))
-                    texto_completo += pytesseract.image_to_string(img)
+                    texto_completo += pytesseract.image_to_string(img) + "\n"
     except Exception as e:
         print(f"Error procesando {ruta_archivo}: {e}")
     return texto_completo
+
 
 def extraer_tablas(texto):
     """Extraer tablas del texto leído del PDF."""
@@ -62,6 +65,7 @@ def extraer_tablas(texto):
         tablas.append({"codigo": codigo_actual, "numeros": tabla_actual})
 
     return tablas
+
 
 
 @app.route('/test_pdf_pages', methods=['POST'])
@@ -157,9 +161,9 @@ def procesar_pdf_files():
             ruta_temporal = f"temp_{archivo.filename}"
             archivo.save(ruta_temporal)
 
-            # Procesar el archivo
+            # Leer el texto y extraer tablas
             texto = leer_pdf(ruta_temporal)
-            tablas = extraer_tablas(texto)
+            tablas = extraer_tablas(texto)  # Procesar todas las páginas
 
             resultado_tablas = []
             for tabla in tablas:
@@ -191,7 +195,7 @@ def procesar_pdf_files():
 
     return jsonify({"resultados": resultado})
 
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
-
 
