@@ -1,18 +1,25 @@
+# Usa una imagen base con Python
 FROM python:3.11-slim
 
-# Instalar dependencias del sistema
-RUN apt-get update && apt-get install -y tesseract-ocr libtesseract-dev
+# Instala dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    && apt-get clean
 
-# Configurar el directorio de trabajo
+# Crea el directorio de la aplicación
 WORKDIR /app
 
-# Copiar archivos del proyecto
-COPY . .
+# Copia los archivos del proyecto
+COPY requirements.txt ./
+COPY app.py ./
 
-# Instalar dependencias de Python
-RUN pip install -r requirements.txt
+# Instala dependencias de Python
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Comando para iniciar la aplicación
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "3", "--timeout", "120"]
+# Expone el puerto 5000
+EXPOSE 5000
+
+# Comando para ejecutar la aplicación
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+
 
 

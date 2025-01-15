@@ -1,57 +1,30 @@
 from flask import Flask, request, jsonify
 import fitz  # PyMuPDF
-import pytesseract
-from PIL import Image
 import re
-import io
-import platform
 import os
+from concurrent.futures import ThreadPoolExecutor
+import tempfile
 
+# Inicializar Flask
 app = Flask(__name__)
 
-
-import subprocess
-
-try:
-    result = subprocess.run(["tesseract", "--version"], capture_output=True, text=True, check=True)
-    print("Tesseract está instalado:")
-    print(result.stdout)
-except FileNotFoundError:
-    print("Tesseract no está instalado o no está en PATH.")
-
-
-# Configurar pytesseract dependiendo del sistema operativo
-if platform.system() == "Windows":
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-else:  # Linux o Android
-    pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
-
+# Función para leer y procesar un PDF
 def leer_pdf(ruta_archivo):
     texto_completo = []
     try:
         with fitz.open(ruta_archivo) as doc:
             for page_num in range(len(doc)):
                 page = doc.load_page(page_num)
-                # Extraer texto de la página
+                # Extraer texto directamente
                 text = page.get_text()
                 if text:
                     texto_completo.append(text)
-                # Procesar imágenes de la página
-                for img in page.get_images(full=True):
-                    xref = img[0]
-                    base_image = doc.extract_image(xref)
-                    image_data = base_image["image"]
-                    img = Image.open(io.BytesIO(image_data))
-                    img = img.resize((800, 800)).convert('L')  # Optimización
-                    texto_completo.append(pytesseract.image_to_string(img))
     except Exception as e:
         print(f"Error procesando {ruta_archivo}: {e}")
     return "\n".join(texto_completo)
 
-
-
+# Función para extraer tablas del texto
 def extraer_tablas(texto):
-    """Extraer tablas del texto leído del PDF."""
     lineas = texto.splitlines()
     tablas = []
     tabla_actual = []
@@ -78,19 +51,13 @@ def extraer_tablas(texto):
 
     return tablas
 
-@app.route('/')
-def home():
-    return "Hello, Flask is running!"
-
-
-
+# Determinar si una tabla es especial
 def es_tabla_especial(codigo):
-    """Determina si una tabla es especial y debe omitirse."""
     especiales = ["0077731", "0077732"]
     return codigo in especiales
 
+# Reordenar números según una lógica específica
 def reordenar_numeros(numeros_en_fila):
-    """Reorganizar números según una lógica específica."""
     try:
         numero_a_comparar = int(numeros_en_fila[20])
         if numero_a_comparar < 40:
@@ -112,14 +79,7 @@ def reordenar_numeros(numeros_en_fila):
         numeros_correctos = numeros_en_fila
     return numeros_correctos
 
-@app.route('/test_update', methods=['GET'])
-def test_update():
-    return "El servidor está actualizado correctamente.", 200
-
-
-from concurrent.futures import ThreadPoolExecutor
-import tempfile
-
+# Procesar un único PDF
 def procesar_un_pdf(archivo):
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
@@ -143,6 +103,12 @@ def procesar_un_pdf(archivo):
     except Exception as e:
         return {"archivo": archivo.filename, "error": str(e)}
 
+# Ruta principal
+@app.route('/')
+def home():
+    return "Hello, Flask is running!"
+
+# Ruta para procesar PDFs
 @app.route('/procesar_pdf_files', methods=['POST'])
 def procesar_pdf_files():
     if 'files' not in request.files:
@@ -154,8 +120,14 @@ def procesar_pdf_files():
 
     return jsonify({"resultados": resultados})
 
+# Ruta de prueba
+@app.route('/test_update', methods=['GET'])
+def test_update():
+    return "El servidor está actualizado correctamente.", 200
 
-
+# Ejecutar servidor
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+
+
 
