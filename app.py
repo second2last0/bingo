@@ -9,6 +9,17 @@ import os
 
 app = Flask(__name__)
 
+
+import subprocess
+
+try:
+    result = subprocess.run(["tesseract", "--version"], capture_output=True, text=True, check=True)
+    print("Tesseract está instalado:")
+    print(result.stdout)
+except FileNotFoundError:
+    print("Tesseract no está instalado o no está en PATH.")
+
+
 # Configurar pytesseract dependiendo del sistema operativo
 if platform.system() == "Windows":
     pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
