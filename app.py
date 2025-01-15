@@ -24,7 +24,7 @@ except FileNotFoundError:
 if platform.system() == "Windows":
     pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 else:  # Linux o Android
-    pytesseract.pytesseract.tesseract_cmd = '/data/data/org.test.myapp/files/tesseract'
+    pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
 
 def leer_pdf(ruta_archivo):
     """Extraer texto y procesar imágenes de todas las páginas de un archivo PDF."""
