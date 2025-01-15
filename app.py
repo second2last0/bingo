@@ -66,6 +66,10 @@ def extraer_tablas(texto):
 
     return tablas
 
+@app.route('/')
+def home():
+    return "Hello, Flask is running!"
+
 
 
 @app.route('/test_pdf_pages', methods=['POST'])
