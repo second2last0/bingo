@@ -4,9 +4,12 @@ import re
 import os
 from concurrent.futures import ThreadPoolExecutor
 import tempfile
+from flask_cors import CORS
+
 
 # Inicializar Flask
 app = Flask(__name__)
+CORS(app)
 
 # Función para leer y procesar un PDF
 def leer_pdf(ruta_archivo):
@@ -30,22 +33,36 @@ def extraer_tablas(texto):
     tabla_actual = []
     codigo_actual = None
 
-    for linea in lineas:
+    for i, linea in enumerate(lineas):
+        linea = linea.strip()
+
+        # --- FORMATO NUEVO ---
+        if re.match(r'^[~‡]?\s*#\d{7}', linea):
+            if tabla_actual and codigo_actual and not es_tabla_especial(codigo_actual):
+                tablas.append({"codigo": codigo_actual, "numeros": tabla_actual})
+            codigo_actual = re.sub(r'[^0-9]', '', linea)  # extraer solo los dígitos del código
+            tabla_actual = []
+            continue
+
+        if re.match(r'^\d{1,2}$', linea):  # línea solo con un número
+            tabla_actual.append([linea])
+            continue
+
+        # --- FORMATO ANTIGUO ---
         if "TABLA No." in linea or "TABLA #" in linea:
             if tabla_actual and codigo_actual and not es_tabla_especial(codigo_actual):
                 tablas.append({"codigo": codigo_actual, "numeros": tabla_actual})
-                tabla_actual = []
-                codigo_actual = None
-
             if "TABLA No." in linea:
                 codigo_actual = linea.split("TABLA No.")[-1].strip()
             elif "TABLA #" in linea:
                 codigo_actual = linea.split("TABLA #")[-1].strip()
+            tabla_actual = []
         else:
             numeros = re.findall(r'\b\d{1,2}\b', linea)
             if numeros:
                 tabla_actual.append(numeros)
 
+    # guardar última tabla
     if tabla_actual and codigo_actual and not es_tabla_especial(codigo_actual):
         tablas.append({"codigo": codigo_actual, "numeros": tabla_actual})
 
@@ -117,6 +134,9 @@ def procesar_pdf_files():
     archivos = request.files.getlist('files')
     with ThreadPoolExecutor() as executor:
         resultados = list(executor.map(procesar_un_pdf, archivos))
+
+    print("RESULTADOS DEL SERVIDOR:")
+    print(resultados)  # 👈 Esto mostrará en consola lo que el servidor va a enviar
 
     return jsonify({"resultados": resultados})
 

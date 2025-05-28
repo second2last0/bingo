@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Subir PDFs y Ver Resultados</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .resultado { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Subir archivos PDF</h1>
+    <form id="uploadForm">
+        <input type="file" name="files" multiple accept="application/pdf" required>
+        <br><br>
+        <button type="submit">Enviar</button>
+    </form>
+
+    <div class="resultado" id="resultado"></div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const resultadoDiv = document.getElementById('resultado');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            try {
+                const res = await fetch("http://localhost:5000/procesar_pdf_files", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await res.json();
+                mostrarResultados(data.resultados);
+            } catch (error) {
+                resultadoDiv.innerHTML = `<p style="color:red;">Error al enviar archivos: ${error}</p>`;
+            }
+        });
+
+        function mostrarResultados(resultados) {
+            if (!resultados.length) {
+                resultadoDiv.innerHTML = "<p>No se encontraron tablas.</p>";
+                return;
+            }
+
+            let html = "<h2>Resultados:</h2>";
+            resultados.forEach(r => {
+                html += `<h3>Archivo: ${r.archivo}</h3>`;
+                if (r.error) {
+                    html += `<p style="color:red;">Error: ${r.error}</p>`;
+                    return;
+                }
+                html += "<table><tr><th>Código</th><th>Números Ordenados</th></tr>";
+                r.tablas.forEach(t => {
+                    html += `<tr><td>${t.codigo}</td><td>${t.numeros_ordenados.join(', ')}</td></tr>`;
+                });
+                html += "</table>";
+            });
+
+            resultadoDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
+
